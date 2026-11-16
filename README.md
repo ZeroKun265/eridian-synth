@@ -1,4 +1,6 @@
 # Eridian Synth
+> [!note]
+> This project does heavy use of AI, be warned
 
 Text → Eridian-style chords (Web Audio, no dependencies, fully static).
 
