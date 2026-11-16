@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07090f">
+<title>Eridian Synth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="app">
+
+  <header class="top">
+    <div class="logo" aria-hidden="true">◈</div>
+    <div>
+      <h1>Eridian Synth</h1>
+      <p class="sub">Turn words into Eridian chords. Same words, same sound, every time.</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <input id="txt" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+           value="Hello [h] friend! Amaze*** amaze!!" placeholder="Type something…">
+    <p class="hint"><kbd>Enter</kbd> play · <kbd>Esc</kbd> stop</p>
+
+    <canvas id="viz"></canvas>
+
+    <div id="emos" class="chips"></div>
+
+    <div class="controls">
+      <div class="speed">
+        <label for="speed">Speed</label>
+        <input type="range" id="speed" step="0.05">
+        <span id="speedval"></span>
+      </div>
+      <div class="actions">
+        <button id="play" class="btn primary" type="button">▶ Play</button>
+        <button id="stop" class="btn" type="button">■ Stop</button>
+        <button id="save" class="btn" type="button">＋ Save</button>
+        <button id="wav" class="btn" type="button">⬇ WAV</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Soundboard</h2>
+    <div id="board"></div>
+  </section>
+
+  <details class="card help">
+    <summary>Cheat sheet</summary>
+    <div class="cols">
+      <div>
+        <h3>After a word (stackable)</h3>
+        <ul>
+          <li><code>!</code> louder</li>
+          <li><code>?</code> glide up</li>
+          <li><code>_</code> glide down</li>
+          <li><code>*</code> longer</li>
+          <li><code>~</code> wobble</li>
+        </ul>
+        <p>e.g. <code>no***!!</code> &nbsp; <code>what?</code> &nbsp; <code>oh~~</code></p>
+        <p>Pauses: <code>,</code> <code>.</code> <code>;</code> <code>:</code></p>
+      </div>
+      <div>
+        <h3>Tone tags (affect following words)</h3>
+        <ul>
+          <li><code>[n]</code> neutral</li>
+          <li><code>[h]</code> happy</li>
+          <li><code>[s]</code> sad</li>
+          <li><code>[vs]</code> or <code>[very sad]</code></li>
+          <li><code>[sc]</code> scared</li>
+          <li><code>[e]</code> excited</li>
+          <li><code>[a]</code> angry</li>
+        </ul>
+        <p>The buttons above set the starting tone.</p>
+      </div>
+    </div>
+  </details>
+
+</main>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
