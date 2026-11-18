@@ -56,6 +56,9 @@
     <div class="dialect-tools">
       <button id="dialect-save" class="btn small" type="button">＋ Save as dialect…</button>
       <button id="dialect-delete" class="btn small" type="button" hidden>Delete dialect</button>
+      <button id="dl-export" class="btn small" type="button" title="Download your custom dialects">⬆ Export dialects</button>
+      <button id="dl-import" class="btn small" type="button" title="Merge a dialects file (same names are overwritten)">⬇ Import dialects</button>
+      <input id="dl-file" type="file" accept=".json,application/json" hidden>
     </div>
     <div id="knobs-flair" class="knobs"></div>
     <p id="flairinfo" class="hint"></p>
@@ -64,8 +67,24 @@
 
   <section class="card">
     <h2>Soundboard</h2>
+    <div id="tabs" class="tabs"></div>
     <div id="board"></div>
+    <div class="board-tools">
+      <button id="sb-export" class="btn small" type="button" title="Download all tabs and pads">⬆ Export soundboard</button>
+      <button id="sb-import" class="btn small" type="button" title="Merge a soundboard file into this one">⬇ Import soundboard</button>
+      <input id="sb-file" type="file" accept=".json,application/json" hidden>
+    </div>
   </section>
+
+  <details class="card help">
+    <summary>Data</summary>
+    <p class="hint">Clears what this browser has stored for the page (cannot be undone; export first if unsure).</p>
+    <div class="dialect-tools">
+      <button id="clear-board" class="btn small danger" type="button">Clear soundboard</button>
+      <button id="clear-dialects" class="btn small danger" type="button">Clear custom dialects</button>
+      <button id="clear-all" class="btn small danger" type="button">Clear everything</button>
+    </div>
+  </details>
 
   <details class="card help">
     <summary>Cheat sheet</summary>

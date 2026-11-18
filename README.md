@@ -67,3 +67,11 @@ text, so they re-render with the new mapping).
 - **Dialect & flair** panel: dialect chips + flair sliders. Each panel has its own reset.
 - `TEMPO` in `js/config.js` sets what 1× means; `HUM` sets Happy's background pad (freq ratio, level).
 - Pads saved before v0.12 are converted automatically (speed ÷ 0.75).
+
+## Soundboard tabs, import/export, clearing (v0.13)
+- Board = tabs of pads (`js/ui/soundboard.js`, data shape in `js/core/storage.js`). Reorder tabs by drag or ◀ ▶.
+- `js/core/backup.js`: soundboard / dialects files (JSON). Imports always merge: same-named tab = written into,
+  identical pad (text + tone + settings) = overwritten, same-named dialect = imported one wins.
+- Soundboard files carry the custom dialects their pads use, so pads sound the same elsewhere.
+- "Data" card: clear soundboard / custom dialects / everything.
+- Attack click level: `CLICK` in config.js.

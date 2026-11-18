@@ -1,22 +1,28 @@
 // Entry point: wires UI to core.
 
-import { DEFAULT_DIALECT, DEFAULT_EMOTION, DIALECTS, EMOTIONS, VERSION } from './config.js';
+import {
+  DEFAULT_DIALECT, DEFAULT_EMOTION, DIALECTS, EMOTIONS, VERSION, STORAGE_KEY, SETTINGS_KEY, DIALECTS_KEY,
+} from './config.js';
 import { stamps } from './util/build.js';
 import { plan } from './core/planner.js';
 import { play, stop } from './core/player.js';
 import { exportWav } from './core/wav.js';
+import {
+  buildSoundboardFile, parseSoundboardFile, mergeSoundboard,
+  buildDialectsFile, parseDialectsFile, mergeDialects,
+} from './core/backup.js';
 import {
   loadBoard, saveBoard, loadSettings, saveSettings, loadDialects, saveDialects,
 } from './core/storage.js';
 import { mountEmotionPicker } from './ui/emotionPicker.js';
 import { mountDialectPicker } from './ui/dialectPicker.js';
 import { mountKnobs } from './ui/knobs.js';
-import { renderBoard } from './ui/soundboard.js';
+import { mountSoundboard } from './ui/soundboard.js';
 import { mountVisualizer } from './ui/visualizer.js';
 
 const $ = id => document.getElementById(id);
 let emotion = DEFAULT_EMOTION;
-let board = loadBoard();
+const board = loadBoard();
 Object.assign(DIALECTS, loadDialects()); // user-saved dialects join the built-in ones
 const opts = loadSettings(); // knob values (speed, pitch, flair...), persisted
 
@@ -114,23 +120,74 @@ $('txt').addEventListener('keydown', e => {
 // Esc stops from anywhere on the page, whichever element has focus
 document.addEventListener('keydown', e => { if (e.key === 'Escape') stop(); });
 
-// soundboard (pads remember the knob values they were saved with; old pads only had speed)
-function drawBoard() {
-  renderBoard($('board'), board, {
-    onPlay: it => play(it.text, it.emo, it.opts ?? { speed: it.speed ?? 1 }),
-    onRemove: i => { board.splice(i, 1); saveBoard(board); drawBoard(); },
-  });
-}
-
+// soundboard: tabs of pads (pads remember the knob values they were saved with)
+const sb = mountSoundboard({ tabsEl: $('tabs'), boardEl: $('board') }, board, {
+  onPlay: it => play(it.text, it.emo, it.opts),
+  onChange: saveBoard,
+});
 $('save').onclick = () => {
   const text = $('txt').value.trim();
   if (!text) return;
-  board.push({ text, emo: emotion, opts: { ...opts, v: 2 } });
+  sb.current().pads.push({ text, emo: emotion, opts: { ...opts, v: 2 } });
   saveBoard(board);
-  drawBoard();
+  sb.render();
 };
 
-drawBoard();
+// export / import (core/backup.js). Imports merge into the current session.
+const customOnly = () => Object.fromEntries(Object.entries(DIALECTS).filter(([, d]) => d.custom));
+const today = () => new Date().toISOString().slice(0, 10);
+function download(name, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function pickFile(inputId, handler) { // handler(text) may throw an Error to show to the user
+  const input = $(inputId);
+  input.onchange = async () => {
+    const f = input.files[0];
+    input.value = '';
+    if (!f) return;
+    try { alert(handler(await f.text())); } catch (e) { alert(e.message); }
+  };
+  input.click();
+}
+function setCustomDialects(custom, changedKeys) { // swap the custom dialects in the live session
+  for (const k of Object.keys(customOnly())) delete DIALECTS[k];
+  Object.assign(DIALECTS, custom);
+  saveDialects(DIALECTS);
+  if (changedKeys.includes(opts.dialect)) selectDialect(opts.dialect); else refreshDialects();
+}
+
+$('sb-export').onclick = () => download(`eridian-soundboard-${today()}.json`, buildSoundboardFile(board, DIALECTS));
+$('sb-import').onclick = () => pickFile('sb-file', text => {
+  const r = mergeSoundboard(board, parseSoundboardFile(text), customOnly());
+  setCustomDialects(r.dialects, r.changedKeys);
+  saveBoard(board); sb.render();
+  return `Imported: ${r.added} new pads, ${r.tabsCreated} new tabs.`;
+});
+$('dl-export').onclick = () => {
+  if (!Object.keys(customOnly()).length) { alert('No custom dialects to export yet.'); return; }
+  download(`eridian-dialects-${today()}.json`, buildDialectsFile(DIALECTS));
+};
+$('dl-import').onclick = () => pickFile('dl-file', text => {
+  const imp = parseDialectsFile(text).dialects;
+  const r = mergeDialects(customOnly(), imp);
+  setCustomDialects(r.dialects, Object.values(r.keyMap));
+  return `Imported ${Object.keys(r.keyMap).length} dialects` + (r.skipped ? ` (${r.skipped} skipped: same name as a built-in dialect)` : '') + '.';
+});
+
+// clearing stored data (then reload so everything restarts from defaults)
+function wipe(what, ...keys) {
+  if (!confirm(`Clear ${what}? This cannot be undone.`)) return;
+  try { keys.forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
+  location.reload();
+}
+$('clear-board').onclick = () => wipe('the whole soundboard (all tabs and pads)', STORAGE_KEY);
+$('clear-dialects').onclick = () => wipe('all custom dialects', DIALECTS_KEY);
+$('clear-all').onclick = () => wipe('everything (soundboard, custom dialects, slider settings)', STORAGE_KEY, DIALECTS_KEY, SETTINGS_KEY);
+
 updateInfo();
 $('ver').textContent = 'v' + VERSION;
 $('txt').focus();

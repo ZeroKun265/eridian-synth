@@ -115,7 +115,7 @@ export const knobDefault = (k, dialect) => DIALECTS[dialect]?.[k] ?? KNOBS[k].de
 
 // Shown in the page footer. If it does not match the zip you just deployed, the browser is
 // serving cached files: hard-reload (Ctrl+Shift+R).
-export const VERSION = '0.12.1';
+export const VERSION = '0.13.0';
 
 export const STORAGE_KEY = 'eridian-board';
 export const SETTINGS_KEY = 'eridian-settings-3'; // bumped when the speed scale changed

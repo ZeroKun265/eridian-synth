@@ -1,6 +1,6 @@
 import { DIALECTS } from '../config.js';
 import { stamp } from '../util/build.js';
-stamp('dialectPicker', '0.12.1');
+stamp('dialectPicker', '0.13.0');
 
 // Chips for choosing a dialect (built-in and user-saved). Clicking a chip calls onSelect(key).
 // render(selectedKey, modified) redraws all chips; the selected one gets a "*" when modified.

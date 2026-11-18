@@ -3,7 +3,7 @@
 
 import { mulberry } from '../util/prng.js';
 import { stamp } from '../util/build.js';
-stamp('synth', '0.12.1');
+stamp('synth', '0.13.0');
 import { MOD, BASE, HUM, CLICK } from '../config.js';
 import { playFlair } from './layers.js';
 

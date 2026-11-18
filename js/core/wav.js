@@ -2,7 +2,7 @@
 
 import { plan } from './planner.js';
 import { stamp } from '../util/build.js';
-stamp('wav', '0.12.1');
+stamp('wav', '0.13.0');
 import { render } from './synth.js';
 import { EMOTIONS } from '../config.js';
 

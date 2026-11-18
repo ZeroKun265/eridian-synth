@@ -1,6 +1,6 @@
 import { KNOBS, defaultOpts, knobDefault } from '../config.js';
 import { stamp } from '../util/build.js';
-stamp('knobs', '0.12.1');
+stamp('knobs', '0.13.0');
 
 // Builds one slider row per entry in KNOBS (label, slider, value, and a ↺ button that goes back to
 // that slider's default; for flair amount/length the default is the current dialect's preset).

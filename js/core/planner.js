@@ -9,7 +9,7 @@ import {
 } from '../config.js';
 import { fnv, mulberry } from '../util/prng.js';
 import { stamp } from '../util/build.js';
-stamp('planner', '0.12.1');
+stamp('planner', '0.13.0');
 
 // [tag] | word + trailing modifier run | pause punctuation | stray modifier run
 const TOKEN = /\[([^\]]*)\]|([\p{L}\p{N}']+)([!?*~_]*)|([,.;:])|([!?*~_]+)/gu;

@@ -4,7 +4,7 @@
 // and add an entry to LAYERS in config.js.
 
 import { stamp } from '../util/build.js';
-stamp('layers', '0.12.1');
+stamp('layers', '0.13.0');
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 

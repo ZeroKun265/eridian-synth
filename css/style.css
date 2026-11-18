@@ -161,3 +161,17 @@ input[type=range]::-moz-range-thumb {
 .cols ul { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 4px; }
 .cols p { margin: 6px 0; color: var(--muted); font-size: .85rem; }
 @media (max-width: 560px) { .cols { grid-template-columns: 1fr; } }
+
+.board-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.tab { font: inherit; font-size: .85rem; padding: 6px 14px; border-radius: 999px; cursor: pointer; color: var(--muted);
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); }
+.tab:hover { color: #fff; }
+.tab.on { color: #fff; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.tab.add { padding: 6px 11px; }
+.tab-tools { display: inline-flex; gap: 2px; margin-left: 6px; }
+.tab-btn { font: inherit; font-size: .8rem; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; color: var(--muted);
+  background: none; border: 1px solid transparent; }
+.tab-btn:hover:not(:disabled) { color: #fff; background: rgba(255,255,255,.08); }
+.tab-btn:disabled { opacity: .3; cursor: default; }
+.btn.danger:hover { background: #b4343a; border-color: #b4343a; color: #fff; }
