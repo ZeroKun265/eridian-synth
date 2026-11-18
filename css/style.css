@@ -83,9 +83,27 @@ kbd { color: var(--text); border: 1px solid var(--border); }
 
 /* controls */
 .controls { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; justify-content: space-between; }
-.speed { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 200px; }
-.speed label { color: var(--muted); font-size: .85rem; }
-#speedval { min-width: 3.6em; text-align: right; font-family: var(--mono); font-size: .9rem; }
+.knobs { display: grid; gap: 12px; margin-bottom: 14px; }
+.knob { display: grid; grid-template-columns: 110px 1fr 72px 28px; gap: 12px; align-items: center; }
+.knob-reset {
+  width: 28px; height: 28px; padding: 0; border-radius: 50%; cursor: pointer; line-height: 1;
+  color: var(--muted); background: transparent; border: 1px solid var(--border); transition: all .15s;
+}
+.knob-reset:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+.knob-reset:disabled { opacity: .25; cursor: default; }
+.knob label { color: var(--muted); font-size: .85rem; cursor: default; }
+.dialect-label { color: var(--muted); font-size: .85rem; }
+#dialects { margin: 8px 0 4px; }
+#dialectdesc { margin: 0 2px 10px; }
+.dialect-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.btn.small { padding: 6px 12px; font-size: .85rem; }
+.stale {
+  padding: 10px 14px; border-radius: 12px; color: #fecaca; font-size: .9rem;
+  background: rgba(185, 28, 28, .25); border: 1px solid rgba(248, 113, 113, .5);
+}
+#flairinfo { margin: 0 2px 12px; }
+.knob-val { text-align: right; font-family: var(--mono); font-size: .85rem; }
+@media (max-width: 480px) { .knob { grid-template-columns: 80px 1fr 56px 28px; gap: 8px; } }
 input[type=range] {
   flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 99px; outline: none;
   background: linear-gradient(90deg, var(--accent) var(--fill, 50%), rgba(255, 255, 255, .12) var(--fill, 50%));

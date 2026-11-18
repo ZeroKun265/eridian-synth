@@ -4,9 +4,12 @@
 // change expression.
 
 import {
-  PENT, BASE, TEMPO, WORD_GAP, PAUSE, PAUSE_END, MOD, SYLLABLE, LAYERS, FLAIR, EMOTIONS, EMOTION_TAGS,
+  PENT, BASE, TEMPO, WORD_GAP, PAUSE, PAUSE_END, MOD, SYLLABLE, LAYERS, FLAIR, DIALECTS,
+  DEFAULT_DIALECT, EMOTIONS, EMOTION_TAGS,
 } from '../config.js';
 import { fnv, mulberry } from '../util/prng.js';
+import { stamp } from '../util/build.js';
+stamp('planner', '0.12.1');
 
 // [tag] | word + trailing modifier run | pause punctuation | stray modifier run
 const TOKEN = /\[([^\]]*)\]|([\p{L}\p{N}']+)([!?*~_]*)|([,.;:])|([!?*~_]+)/gu;
@@ -42,36 +45,49 @@ function chordFor(syl) {
 // cooldown. Whether a word starts one, which layer, and how long, all come from the word's text
 // (the emotion only reweights which layer is picked). Spans never cross a tone change.
 // The flair is stored on its first word: ev.flair = {name, a, b, amp, t, dur, loud, root, starts, emo}.
-function planFlairs(events) {
+function planFlairs(events, { rate, maxWords, level, weights }) {
+  const p = rate * FLAIR.maxP;
+  const cooldown = Math.round(FLAIR.cooldown * (1 - rate));
+  const minWords = Math.max(1, Math.round(maxWords * FLAIR.minFrac));
   const names = Object.keys(LAYERS);
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
     const rnd = mulberry(fnv(ev.word + '#flair'));
-    if (rnd() >= FLAIR.p) continue;
+    if (rnd() >= p) continue;
     const pick = rnd(), a = rnd(), b = rnd(), lenRoll = rnd();
 
-    const w = names.map(n => LAYERS[n].weight * (ev.emo.bias?.[n] ?? 1));
+    const w = names.map(n => LAYERS[n].weight * (weights?.[n] ?? 1) * (ev.emo.bias?.[n] ?? 1));
     let x = pick * w.reduce((s, v) => s + v, 0), name = names[names.length - 1];
     for (let k = 0; k < names.length; k++) if ((x -= w[k]) < 0) { name = names[k]; break; }
 
-    const n = FLAIR.minWords + Math.floor(lenRoll * (FLAIR.maxWords - FLAIR.minWords + 1));
+    const n = minWords + Math.floor(lenRoll * (maxWords - minWords + 1));
     let j = i;
     while (j + 1 < events.length && j - i + 1 < n && events[j + 1].emo === ev.emo) j++;
     const last = events[j];
 
     ev.flair = {
-      name, a, b, amp: LAYERS[name].amp, emo: ev.emo,
+      name, a, b, amp: LAYERS[name].amp * level, emo: ev.emo,
       t: ev.t, dur: last.t + last.dur - ev.t, loud: ev.loud,
       root: ev.chords[0].notes[0],
       starts: events.slice(i, j + 1).map(e => e.t),
+      words: events.slice(i, j + 1).map(e => e.word),
     };
-    i = j + FLAIR.cooldown;
+    i = j + cooldown;
   }
 }
 
-export function plan(text, baseEmo, speed = 1) {
+// opts (all optional, see KNOBS in config.js): speed, pitch (semitones), flair (amount 0..1),
+// flairLen (max words), flairLevel (volume multiplier)
+export function plan(text, baseEmo, opts = {}) {
+  const {
+    speed = 1, pitch = 0, flair = FLAIR.rate, flairLen = FLAIR.maxWords, flairLevel = 1,
+    dialect = DEFAULT_DIALECT,
+    solo = false, // debug: play only the flair layers (no chords)
+  } = opts;
+  const D = DIALECTS[dialect] ?? DIALECTS[DEFAULT_DIALECT];
+  const pf = 2 ** (pitch / 12);
   let emo = baseEmo;
-  const events = [];
+  let events = [];
   let t = 0.05;
 
   for (const m of text.matchAll(TOKEN)) {
@@ -108,7 +124,7 @@ export function plan(text, baseEmo, speed = 1) {
       const dur = Math.max(0.05, base * ts * (last ? 1 + MOD.starStretch * stars : 1));
       const c = {
         t: wt, dur,
-        notes: chordFor(s).map(r => BASE * r * emo.pitch * lift),
+        notes: chordFor(s).map(r => BASE * r * emo.pitch * lift * pf),
         glide: (emo.lilt ?? 1) * (last ? userGlide : 1),
       };
       wt += dur;
@@ -124,7 +140,25 @@ export function plan(text, baseEmo, speed = 1) {
     if (/[!?]/.test(mods)) t += PAUSE_END * ts;
   }
 
-  planFlairs(events);
+  // amount 0 or volume 0 => no flair events at all (identical to a build without flair)
+  // (the dialect only picks which sounds are favored; amount/length come from the sliders)
+  if (flair > 0 && flairLevel > 0) {
+    planFlairs(events, { rate: flair, maxWords: flairLen, level: flairLevel, weights: D.weights });
+  }
+
+  if (solo) { // keep only the stretch that has flair, shifted to start at ~0 (no silent lead-in)
+    const spans = events.map((e, i) => e.flair && [i, i + e.flair.words.length - 1]).filter(Boolean);
+    events = spans.length ? events.slice(spans[0][0], spans[spans.length - 1][1] + 1) : [];
+    if (events.length) {
+      const dt = events[0].t - 0.05;
+      for (const e of events) {
+        e.t -= dt;
+        e.chords.forEach(c => { c.t -= dt; });
+        if (e.flair) { e.flair.t -= dt; e.flair.starts = e.flair.starts.map(s => s - dt); }
+      }
+      t = events[events.length - 1].t + events[events.length - 1].dur;
+    }
+  }
 
   // group consecutive same-emotion events (tremolo/rumble/distortion apply per segment)
   const segments = [];
@@ -134,5 +168,5 @@ export function plan(text, baseEmo, speed = 1) {
     else segments.push({ emo: ev.emo, start: ev.t, end: ev.t + ev.dur, events: [ev] });
   }
 
-  return { events, segments, total: t + 0.6 };
+  return { events, segments, total: t + 0.6, solo, pf };
 }

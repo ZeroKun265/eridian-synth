@@ -2,7 +2,9 @@
 // Each emotion segment gets its own bus (tremolo / distortion / rumble are per segment).
 
 import { mulberry } from '../util/prng.js';
-import { MOD, BASE } from '../config.js';
+import { stamp } from '../util/build.js';
+stamp('synth', '0.12.1');
+import { MOD, BASE, HUM, CLICK } from '../config.js';
 import { playFlair } from './layers.js';
 
 // `tap` (optional AnalyserNode etc.) also receives the final mix, for visualization.
@@ -12,9 +14,9 @@ export function render(ctx, plan, tap = null) {
   const noiseLoop = makeNoiseLoop(ctx);
   for (const seg of plan.segments) {
     const { bus, head } = makeSegmentBus(ctx, out, seg);
-    if (seg.emo.rumble) addRumble(ctx, head, seg);
+    if (seg.emo.rumble && !plan.solo) addRumble(ctx, head, seg, plan.pf ?? 1);
     for (const ev of seg.events) {
-      for (const chord of ev.chords) playChord(ctx, bus, noise, chord, ev);
+      if (!plan.solo) for (const chord of ev.chords) playChord(ctx, bus, noise, chord, ev);
       if (ev.flair) playFlair(ctx, bus, noiseLoop, ev.flair);
     }
   }
@@ -73,7 +75,7 @@ function makeSegmentBus(ctx, out, seg) {
   return { bus, head };
 }
 
-function addRumble(ctx, head, seg) {
+function addRumble(ctx, head, seg, pf) {
   const a = seg.start, b = seg.end + 0.3;
   const up = Math.min(0.3, (b - a) * 0.3);
   const g = ctx.createGain();
@@ -82,13 +84,12 @@ function addRumble(ctx, head, seg) {
   g.gain.setValueAtTime(1, Math.max(a + up, b - 0.4));
   g.gain.linearRampToValueAtTime(0, b);
   g.connect(head);
-  // warm pad on root / fifth / octave, tracking the emotion's pitch.
-  // Kept above sub-bass so it is still audible on laptop and phone speakers.
-  [[0.5, 0.14], [0.75, 0.09], [1, 0.07]].forEach(([ratio, amp]) => {
+  // soft low pad (HUM in config.js), tracking the tone's pitch and the Pitch slider
+  HUM.forEach(([ratio, amp]) => {
     const o = ctx.createOscillator();
     const og = ctx.createGain();
     o.type = 'triangle';
-    o.frequency.value = BASE * seg.emo.pitch * ratio;
+    o.frequency.value = BASE * seg.emo.pitch * pf * ratio;
     og.gain.value = amp;
     o.connect(og); og.connect(g);
     o.start(a); o.stop(b);
@@ -110,10 +111,10 @@ function playChord(ctx, bus, noise, chord, ev) {
   const end = chord.t + chord.dur;
   const stagger = Math.min(0.025, chord.dur * 0.15);
   chord.notes.forEach((f, k) =>
-    playNote(ctx, bus, noise, f, chord.t + k * stagger, end, peak, chord.glide, ev.wobble));
+    playNote(ctx, bus, noise, f, chord.t + k * stagger, end, peak, chord.glide, ev.wobble, k === 0));
 }
 
-function playNote(ctx, bus, noise, f, t, end, peak, glide, wobble) {
+function playNote(ctx, bus, noise, f, t, end, peak, glide, wobble, click) {
   // amplitude envelope
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, t);
@@ -158,10 +159,14 @@ function playNote(ctx, bus, noise, f, t, end, peak, glide, wobble) {
     lfo.start(t); lfo.stop(end + 0.05);
   }
 
-  // attack rattle
+  // attack click: one short decaying noise tick per chord (not per note), kept quiet so it
+  // doesn't read as a constant high buzz
+  if (!click) return;
   const ns = ctx.createBufferSource(); ns.buffer = noise;
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2500;
-  const ng = ctx.createGain(); ng.gain.value = 0.6 * peak;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(CLICK * peak, t);
+  ng.gain.exponentialRampToValueAtTime(0.0005, t + 0.03);
   ns.connect(hp); hp.connect(ng); ng.connect(bus);
   ns.start(t);
 }

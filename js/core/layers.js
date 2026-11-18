@@ -3,6 +3,9 @@
 // from the planner; a / b (0..1, seeded) vary its parameters. To add a sound: write a function here, register it in PLAYERS,
 // and add an entry to LAYERS in config.js.
 
+import { stamp } from '../util/build.js';
+stamp('layers', '0.12.1');
+
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 
 // faded gain node feeding the bus

@@ -1,14 +1,16 @@
 // Offline render -> 16-bit mono WAV download.
 
 import { plan } from './planner.js';
+import { stamp } from '../util/build.js';
+stamp('wav', '0.12.1');
 import { render } from './synth.js';
 import { EMOTIONS } from '../config.js';
 
 const SR = 44100;
 
-export async function exportWav(text, emotionKey, speed = 1, filename = 'eridian.wav') {
+export async function exportWav(text, emotionKey, opts = {}, filename = 'eridian.wav') {
   const emo = EMOTIONS[emotionKey];
-  const p = plan(text, emo, speed);
+  const p = plan(text, emo, opts);
   if (!p.events.length) return;
 
   const oc = new OfflineAudioContext(1, Math.ceil(SR * p.total), SR);

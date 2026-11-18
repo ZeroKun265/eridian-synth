@@ -25,12 +25,20 @@ export const DEFAULT_EMOTION = 'neutral';
 export const EMOTION_TAGS = {};
 for (const [key, e] of Object.entries(EMOTIONS)) for (const t of e.tags) EMOTION_TAGS[t] = key;
 
+// Background pad of the Happy tone: [frequency ratio to the tone's base pitch, level].
+// Was [[0.5, 0.14], [0.75, 0.09], [1, 0.07]]; now half the frequency and about half as loud
+// (-10 dB = half the perceived loudness).
+// Level of the short noise tick at each syllable attack, relative to the chord's peak (0 = none).
+export const CLICK = 0.25;
+
+export const HUM = [[0.25, 0.044], [0.375, 0.028], [0.5, 0.022]];
+
 // Timing. All durations/gaps are multiplied by emotion.speed * TEMPO / userSpeed.
-export const TEMPO = 0.6;        // global time scale (lower = faster)
+export const TEMPO = 0.8;        // global time scale (lower = faster); 0.8 = the pace once shown as 0.75x
 export const WORD_GAP = 0.015;   // silence between words (s, before scaling)
 export const PAUSE = { ',': 0.06, ';': 0.08, ':': 0.08 };
 export const PAUSE_END = 0.14;   // . ! ?
-export const SPEED_MIN = 0.5, SPEED_MAX = 3, SPEED_DEFAULT = 1; // speech-speed slider
+export const SPEED_MIN = 0.5, SPEED_MAX = 4, SPEED_DEFAULT = 1; // speech-speed slider
 
 // Word modifiers (typed right after a word, stackable):
 //   !  louder (+ slight pitch lift)   ?  glide up      _  glide down
@@ -51,19 +59,64 @@ export const SYLLABLE = {
 };
 
 // Flair = occasional extra sound layer that starts on a word and runs over the next few words.
-//   p: chance that a given word starts one (decided by the word's text, so it is repeatable)
-//   minWords/maxWords: how many words it spans   cooldown: words skipped afterwards
-export const FLAIR = { p: 0.09, minWords: 2, maxWords: 4, cooldown: 2 };
+// The "Flair amount" slider (0..1) scales how often it starts and how short the gap after it is:
+//   chance per word = amount * maxP (decided by the word's text, so it is repeatable)
+//   gap after a flair = cooldown * (1 - amount) words     rate: default amount
+//   span = minFrac*maxWords .. maxWords words (maxWords is the "Flair length" slider)
+export const FLAIR = { rate: 0.07, maxP: 0.5, minFrac: 0.5, maxWords: 4, cooldown: 4 };
 
 // The flair sounds. weight: how often it is picked (x EMOTIONS[...].bias)   amp: level
 // whistle = high gliding tone   growl = rough low buzz   grind = two toothed rocks scraping
 // rattle = fast clicking        chirp = short sweep on each word
 export const LAYERS = {
-  whistle: { weight: 3, amp: 0.09 },
-  growl:   { weight: 2, amp: 0.18 },
-  grind:   { weight: 2, amp: 0.40 }, // noise is filtered hard, so it needs a high amp
-  rattle:  { weight: 2, amp: 0.18 },
-  chirp:   { weight: 2, amp: 0.14 },
+  // amps are set so each flair adds ~0.6x the chords' RMS at 100% volume (grind is noise that is
+  // filtered hard, hence the big number)
+  whistle: { weight: 3, amp: 0.17 },
+  growl:   { weight: 2, amp: 0.36 },
+  grind:   { weight: 2, amp: 1.45 },
+  rattle:  { weight: 2, amp: 0.40 },
+  chirp:   { weight: 2, amp: 0.32 },
 };
 
+// Dialects: how much, and what kind of, flair a speaker uses. Picking one moves the Flair amount
+// and Flair length sliders to its values (you can tweak them afterwards) and selects its sounds.
+//   flair: Flair amount slider value (0 = no flair at all)   flairLen: Flair length slider value
+//   weights: multipliers on LAYERS[...].weight (which sounds it favors)
+export const DIALECTS = {
+  proper: { label: 'Proper', desc: 'Clean chords, no flair at all.', flair: 0, flairLen: 4 },
+  common: { label: 'Common', desc: 'A bit of everything, used sparingly.', flair: 0.07, flairLen: 4 },
+  airy:   { label: 'Airy',   desc: 'Whistles and chirps.', flair: 0.1, flairLen: 4,
+            weights: { whistle: 4, chirp: 3, growl: 0.2, grind: 0.2, rattle: 0.5 } },
+  rocky:  { label: 'Rocky',  desc: 'Growls and stone grinding.', flair: 0.1, flairLen: 4,
+            weights: { growl: 3, grind: 5, whistle: 0.3, chirp: 0.3 } },
+  chatty: { label: 'Chatty', desc: 'Frequent rattles and chirps, short bursts.', flair: 0.18, flairLen: 3,
+            weights: { rattle: 4, chirp: 4, whistle: 1, growl: 0.3, grind: 0.3 } },
+  wild:   { label: 'Wild',   desc: 'Flair everywhere, long runs.', flair: 0.28, flairLen: 5 },
+};
+export const DEFAULT_DIALECT = 'common';
+
+// Sliders in the UI (built by ui/knobs.js). The key is the option name passed to plan().
+//   def: default   fmt: how the value is displayed   group: which panel it is shown in
+//   ('voice' = speed/pitch, independent of the dialect; 'flair' = dialect & flair)
+const pct = v => +(v * 100).toFixed(1) + '%';
+export const KNOBS = {
+  speed:      { group: 'voice', label: 'Speed',        min: SPEED_MIN, max: SPEED_MAX, step: 0.05, def: SPEED_DEFAULT, fmt: v => v.toFixed(2) + '×' },
+  pitch:      { group: 'voice', label: 'Pitch',        min: -12, max: 12, step: 1, def: 0, fmt: v => (v > 0 ? '+' : '') + v + ' st' },
+  flair:      { group: 'flair', label: 'Flair amount', min: 0, max: 1, step: 0.01, def: FLAIR.rate, fmt: pct },
+  flairLen:   { group: 'flair', label: 'Flair length', min: 1, max: 8, step: 1, def: FLAIR.maxWords, fmt: v => v + (v === 1 ? ' word' : ' words') },
+  flairLevel: { group: 'flair', label: 'Flair volume', min: 0, max: 3, step: 0.05, def: 1, fmt: pct },
+};
+export const defaultOpts = () => ({
+  ...Object.fromEntries(Object.entries(KNOBS).map(([k, v]) => [k, v.def])),
+  dialect: DEFAULT_DIALECT,
+});
+// default of one slider: the dialect's preset if it has one, else the global default
+export const knobDefault = (k, dialect) => DIALECTS[dialect]?.[k] ?? KNOBS[k].def;
+
+// Shown in the page footer. If it does not match the zip you just deployed, the browser is
+// serving cached files: hard-reload (Ctrl+Shift+R).
+export const VERSION = '0.12.1';
+
 export const STORAGE_KEY = 'eridian-board';
+export const SETTINGS_KEY = 'eridian-settings-3'; // bumped when the speed scale changed
+export const DIALECTS_KEY = 'eridian-dialects';    // user-saved dialects

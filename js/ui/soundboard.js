@@ -21,7 +21,8 @@ export function renderBoard(container, items, { onPlay, onRemove }) {
 
     const meta = document.createElement('span');
     meta.className = 'pad-meta';
-    const sp = it.speed && it.speed !== 1 ? ` · ${it.speed.toFixed(2)}×` : '';
+    const s = it.opts?.speed ?? it.speed;
+    const sp = s && s !== 1 ? ` · ${s.toFixed(2)}×` : '';
     meta.textContent = (emo?.label ?? it.emo) + sp;
 
     play.append(text, meta);

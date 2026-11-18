@@ -10,6 +10,10 @@
 <body>
 <main class="app">
 
+  <div id="stale" class="stale" hidden>
+    ⚠ Some files are cached from an older version. Hard-reload with Ctrl+Shift+R.
+  </div>
+
   <header class="top">
     <div class="logo" aria-hidden="true">◈</div>
     <div>
@@ -28,19 +32,35 @@
     <div id="emos" class="chips"></div>
 
     <div class="controls">
-      <div class="speed">
-        <label for="speed">Speed</label>
-        <input type="range" id="speed" step="0.05">
-        <span id="speedval"></span>
-      </div>
       <div class="actions">
         <button id="play" class="btn primary" type="button">▶ Play</button>
         <button id="stop" class="btn" type="button">■ Stop</button>
+        <button id="solo" class="btn" type="button" title="Play only the flair layers, no chords">✦ Flair only</button>
         <button id="save" class="btn" type="button">＋ Save</button>
         <button id="wav" class="btn" type="button">⬇ WAV</button>
       </div>
     </div>
   </section>
+
+  <details class="card help" open>
+    <summary>Voice</summary>
+    <div id="knobs-voice" class="knobs"></div>
+    <button id="reset-voice" class="btn small" type="button">Reset voice</button>
+  </details>
+
+  <details class="card help" open>
+    <summary>Dialect &amp; flair</summary>
+    <div class="dialect-label">Dialect</div>
+    <div id="dialects" class="chips"></div>
+    <p id="dialectdesc" class="hint"></p>
+    <div class="dialect-tools">
+      <button id="dialect-save" class="btn small" type="button">＋ Save as dialect…</button>
+      <button id="dialect-delete" class="btn small" type="button" hidden>Delete dialect</button>
+    </div>
+    <div id="knobs-flair" class="knobs"></div>
+    <p id="flairinfo" class="hint"></p>
+    <button id="reset-flair" class="btn small" type="button">Reset dialect &amp; flair</button>
+  </details>
 
   <section class="card">
     <h2>Soundboard</h2>
@@ -77,6 +97,8 @@
       </div>
     </div>
   </details>
+
+  <p class="hint" style="text-align:center">Eridian Synth <span id="ver"></span></p>
 
 </main>
 <script type="module" src="js/main.js"></script>

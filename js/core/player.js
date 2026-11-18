@@ -1,6 +1,8 @@
 // Realtime playback.
 
 import { plan } from './planner.js';
+import { stamp } from '../util/build.js';
+stamp('player', '0.12.1');
 import { render } from './synth.js';
 import { EMOTIONS } from '../config.js';
 
@@ -16,10 +18,10 @@ export function getAnalyser() {
   return analyser;
 }
 
-export function play(text, emotionKey, speed = 1) {
+export function play(text, emotionKey, opts = {}) {
   stop();
   const emo = EMOTIONS[emotionKey];
-  const p = plan(text, emo, speed);
+  const p = plan(text, emo, opts);
   if (!p.events.length) return;
   ac = new AudioContext();
   analyser = ac.createAnalyser();
